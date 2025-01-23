@@ -1,28 +1,17 @@
 import django
 from django.utils import translation
+from django.conf import settings
+from typing import Optional
+from django.http import HttpRequest, HttpResponse
+from django.utils.deprecation import MiddlewareMixin
 
 
-def is_django_greater_than_1_10():
-    main_version = django.VERSION[0]
-    if main_version > 1:
-        return True
-
-    sub_version = django.VERSION[1]
-    if main_version == 1 and sub_version >= 10:
-        return True
-
-    return False
-
-
-if is_django_greater_than_1_10():
-    from django.utils.deprecation import MiddlewareMixin
-    superclass = MiddlewareMixin
-else:
-    superclass = object
-
-
-class UserLanguageMiddleware(superclass):
-    def process_response(self, request, response):
+class UserLanguageMiddleware(MiddlewareMixin):
+    """
+    Middleware that sets the language for authenticated users based on their user.language preference.
+    Compatible with Django 3.2+
+    """
+    def process_response(self, request: HttpRequest, response: HttpResponse) -> HttpResponse:
         user = getattr(request, 'user', None)
         if not user:
             return response
@@ -39,6 +28,6 @@ class UserLanguageMiddleware(superclass):
             return response
 
         translation.activate(user_language)
-        request.session[translation.LANGUAGE_SESSION_KEY] = user_language
+        request.session[settings.LANGUAGE_CODE] = user_language
 
         return response
